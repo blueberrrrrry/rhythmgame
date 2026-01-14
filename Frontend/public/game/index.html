@@ -83,7 +83,7 @@
     var buildUrl = "Build";
     var loaderUrl = buildUrl + "/game.loader.js";
     var config = {
-      dataUrl: buildUrl + "/game.data",
+      // dataUrl: buildUrl + "/game.data", // Replaced by dynamic Blob URL
       frameworkUrl: buildUrl + "/game.framework.js",
       codeUrl: buildUrl + "/game.wasm",
       streamingAssetsUrl: "StreamingAssets",
@@ -136,16 +136,73 @@
     var script = document.createElement("script");
     script.src = loaderUrl;
     script.onload = () => {
-      createUnityInstance(canvas, config, (progress) => {
-        progressBarFull.style.width = 100 * progress + "%";
-      }).then((unityInstance) => {
-        loadingBar.style.display = "none";
-        fullscreenButton.onclick = () => {
-          unityInstance.SetFullscreen(1);
+      // [Custom Fix] Download split part files and merge them
+      var totalParts = 3;
+      var parts = [];
+      var loadedParts = 0;
+
+      function checkAndLoad() {
+        loadedParts++;
+        if (loadedParts === totalParts) {
+          // Reassemble in order
+          var combinedParts = [];
+          for (var i = 1; i <= totalParts; i++) {
+            combinedParts.push(parts[i]);
+          }
+          var blob = new Blob(combinedParts);
+          var url = URL.createObjectURL(blob);
+          config.dataUrl = url;
+
+          createUnityInstance(canvas, config, (progress) => {
+            progressBarFull.style.width = 100 * progress + "%";
+          }).then((unityInstance) => {
+            loadingBar.style.display = "none";
+            fullscreenButton.onclick = () => {
+              unityInstance.SetFullscreen(1);
+            };
+            // URL.revokeObjectURL(url); // Should revoke later
+          }).catch((message) => {
+            alert(message);
+          });
+        }
+      }
+
+      function loadPart(index) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", buildUrl + "/game.data.part" + index, true);
+        xhr.responseType = "blob";
+        xhr.onprogress = (e) => {
+          // Optional: Update loading bar based on part downloads?
+          // Simple version: just rely on final Unity load bar for detailed progress
         };
-      }).catch((message) => {
-        alert(message);
-      });
+        xhr.onload = (e) => {
+          if (xhr.status == 200) {
+            parts[index] = xhr.response;
+            checkAndLoad();
+          } else {
+            console.error("Failed to load part " + index);
+            // Fallback to single file if parts don't exist
+            if (index === 1) {
+              config.dataUrl = buildUrl + "/game.data";
+              createUnityInstance(canvas, config, (progress) => {
+                progressBarFull.style.width = 100 * progress + "%";
+              }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                fullscreenButton.onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };
+              }).catch((message) => {
+                alert(message);
+              });
+            }
+          }
+        };
+        xhr.send();
+      }
+
+      for (var i = 1; i <= totalParts; i++) {
+        loadPart(i);
+      }
     };
 
     document.body.appendChild(script);
