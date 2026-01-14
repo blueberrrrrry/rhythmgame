@@ -74,7 +74,7 @@ const GamePage: React.FC = () => {
                 </button>
                 <iframe
                     ref={iframeRef}
-                    src={`${import.meta.env.BASE_URL}game/index.html`}
+                    src={import.meta.env.VITE_GAME_URL || `${import.meta.env.BASE_URL}game/index.html`}
                     title="Rhythm Game"
                     width="100%"
                     height="100%"
