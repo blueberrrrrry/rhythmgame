@@ -14,7 +14,7 @@ const GamePage: React.FC = () => {
         // Check if this is a refresh
         if (sessionStorage.getItem('isRefreshing') === 'true') {
             sessionStorage.removeItem('isRefreshing');
-            window.location.href = '/';
+            window.location.href = '/rhythmgame/';
             return;
         }
 
