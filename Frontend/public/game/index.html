@@ -180,22 +180,13 @@
             parts[index] = xhr.response;
             checkAndLoad();
           } else {
-            console.error("Failed to load part " + index);
-            // Fallback to single file if parts don't exist
-            if (index === 1) {
-              config.dataUrl = buildUrl + "/game.data";
-              createUnityInstance(canvas, config, (progress) => {
-                progressBarFull.style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                loadingBar.style.display = "none";
-                fullscreenButton.onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-              }).catch((message) => {
-                alert(message);
-              });
-            }
+            console.error("Failed to load part " + index + ": " + xhr.status);
+            alert("Game data part " + index + " load failed. Please refresh.");
           }
+        };
+        xhr.onerror = () => {
+          console.error("Network error loading part " + index);
+          alert("Network error loading game data part " + index);
         };
         xhr.send();
       }
